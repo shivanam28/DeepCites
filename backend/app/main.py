@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routes.research import router as research_router
+
 
 from app.config import get_settings
 
@@ -13,6 +15,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+app.include_router(research_router)
 
 
 @app.get("/health")
