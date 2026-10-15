@@ -19,6 +19,15 @@ def _extract_json(text: str) -> str:
     return text[start : end + 1]
 
 
+def _describe(exc: Exception) -> str:
+    """Summarize an error as type@location, never including the offending values."""
+    if isinstance(exc, ValidationError):
+        return "; ".join(
+            f"{e['type']}@{'.'.join(str(p) for p in e['loc'])}" for e in exc.errors()[:5]
+        )
+    return str(exc)
+
+
 def complete_structured(messages: list[dict], schema: type[T], *, max_tokens: int = 800) -> T:
     msgs = list(messages)
     last_error = "unknown"
@@ -27,8 +36,13 @@ def complete_structured(messages: list[dict], schema: type[T], *, max_tokens: in
         try:
             return schema.model_validate_json(_extract_json(raw))
         except (ValueError, ValidationError) as exc:
-            last_error = type(exc).__name__
-            logger.warning("Invalid structured output (%s), attempt %d", last_error, attempt)
+            last_error = _describe(exc)
+            logger.warning(
+                "Invalid structured output (%s, reply_chars=%d), attempt %d",
+                last_error,
+                len(raw),
+                attempt,
+            )
             msgs = msgs + [
                 {"role": "assistant", "content": raw},
                 {

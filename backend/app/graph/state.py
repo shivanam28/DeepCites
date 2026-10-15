@@ -18,3 +18,5 @@ class ResearchState(TypedDict, total=False):
     trace: Annotated[list[str], operator.add]
     claims: list[dict]
     citation_problems: list[str]
+    limitations: str
+    claim_checks: list[dict]

@@ -1,6 +1,6 @@
 from langgraph.graph import END, START, StateGraph
 
-from app.graph.nodes import planner, researcher, route_after_research, writer
+from app.graph.nodes import planner, researcher, route_after_research, verifier, writer
 from app.graph.state import ResearchState
 
 
@@ -17,5 +17,7 @@ def build_graph():
         route_after_research,
         {"researcher": "researcher", "writer": "writer"},
     )
-    g.add_edge("writer", END)
+    g.add_node("verifier", verifier)
+    g.add_edge("writer", "verifier")
+    g.add_edge("verifier", END)
     return g.compile()

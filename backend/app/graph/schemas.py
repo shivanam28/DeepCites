@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 SubQuestion = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=200)]
+
 
 
 class Plan(BaseModel):
@@ -16,6 +17,13 @@ class Claim(BaseModel):
     ] = Field(min_length=1, max_length=4)
 
 
+
 class Answer(BaseModel):
     claims: list[Claim] = Field(max_length=8)  # empty list = "cannot answer from these sources"
-    limitations: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] = ""
+    limitations: Annotated[str, StringConstraints(strip_whitespace=True, max_length=600)] = ""
+    @field_validator("limitations", mode="before")
+    @classmethod
+    def _trim_limitations(cls, v):
+        if isinstance(v, str) and len(v) > 600:
+            return v[:597].rstrip() + "..."
+        return v
