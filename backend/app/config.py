@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://integrate.api.nvidia.com/v1"
     llm_model: str = "nvidia/nemotron-3-super-120b-a12b"
     llm_max_rpm: int = 30
+    llm_extra_body: dict = {}  # extra JSON fields sent with every LLM request
+    supabase_url: str
+    supabase_publishable_key: str
 
 
 @lru_cache

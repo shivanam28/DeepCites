@@ -9,6 +9,10 @@ app = FastAPI()
 app.include_router(research.router)
 client = TestClient(app)
 
+from app.auth import AuthUser, get_current_user
+
+app.dependency_overrides[get_current_user] = lambda: AuthUser(id="test-user", email=None)
+
 STATES = [
     {"question": "q"},
     {"question": "q", "trace": ["planner (llm)"]},
@@ -75,3 +79,10 @@ def test_busy_when_all_slots_taken(monkeypatch):
     finally:
         research._slots.release()
         research._slots.release()
+
+
+def test_research_requires_login():
+    locked = FastAPI()
+    locked.include_router(research.router)
+    r = TestClient(locked).post("/research", json={"question": "valid question"})
+    assert r.status_code == 401

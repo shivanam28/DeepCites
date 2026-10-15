@@ -3,9 +3,10 @@ import logging
 import threading
 from typing import Annotated, Iterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, StringConstraints
+from app.auth import AuthUser, get_current_user
 
 from app.graph.builder import build_graph
 
@@ -59,7 +60,7 @@ def _run(question: str) -> Iterator[str]:
 
 
 @router.post("/research")
-def research(req: ResearchRequest):
+def research(req: ResearchRequest, _user: AuthUser = Depends(get_current_user)):
     return StreamingResponse(
         _run(req.question),
         media_type="text/event-stream",
