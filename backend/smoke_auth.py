@@ -26,7 +26,13 @@ login = httpx.post(
 )
 print("login:", login.status_code)
 if login.status_code != 200:
-    raise SystemExit("Login failed. Check the user, password and keys.")
+    try:
+        err = login.json()
+    except ValueError:
+        err = {}
+    print("error_code:", err.get("error_code") or err.get("error"))
+    print("message:", err.get("msg") or err.get("error_description") or err.get("message"))
+    raise SystemExit("Login failed.")
 token = login.json()["access_token"]
 
 start = time.monotonic()
