@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     llm_extra_body: dict = {}  # extra JSON fields sent with every LLM request
     supabase_url: str
     supabase_publishable_key: str
+    embedding_cache_dir: str = ".fastembed_cache"
 
 
 @lru_cache

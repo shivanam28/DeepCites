@@ -8,6 +8,8 @@ from app.auth import AuthUser, get_current_user
 from app.store import StoreError
 from app.uploads import MAX_UPLOAD_BYTES, UploadError, validate_upload
 
+import threading
+from app import pipeline
 logger = logging.getLogger(__name__)
 router = APIRouter()
 MULTIPART_OVERHEAD = 64 * 1024
@@ -68,3 +70,20 @@ def delete_document(doc_id: uuid.UUID, user: AuthUser = Depends(get_current_user
     except StoreError:
         raise HTTPException(status_code=502, detail="Could not delete the document.")
     return Response(status_code=204)
+
+
+_process_slots = threading.BoundedSemaphore(1)  # embedding is CPU-heavy: one document at a time
+
+
+@router.post("/documents/{doc_id}/process")
+def process_document(doc_id: uuid.UUID, user: AuthUser = Depends(get_current_user)):
+    if not _process_slots.acquire(blocking=False):
+        raise HTTPException(status_code=429, detail="Another document is being processed. Try again shortly.")
+    try:
+        return pipeline.process_document(user, str(doc_id))
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    except StoreError:
+        raise HTTPException(status_code=502, detail="Could not process the document.")
+    finally:
+        _process_slots.release()

@@ -87,3 +87,40 @@ def test_requires_login():
     locked.include_router(documents.router)
     r = TestClient(locked).post("/documents", files={"file": ("a.txt", b"hi", "text/plain")})
     assert r.status_code == 401
+
+class FakePipeline:
+    def __init__(self, result=None, error=None):
+        self.result, self.error = result, error
+
+    def process_document(self, user, doc_id):
+        if self.error:
+            raise self.error
+        return self.result
+
+
+DOC = "/documents/3f2b8c1e-0000-4000-8000-000000000001/process"
+
+
+def test_process_returns_summary(monkeypatch):
+    summary = {"id": "x", "status": "ready", "chunk_count": 3, "truncated": False, "status_detail": None}
+    monkeypatch.setattr(documents, "pipeline", FakePipeline(result=summary))
+    r = client.post(DOC)
+    assert r.status_code == 200 and r.json()["chunk_count"] == 3
+
+
+def test_process_unknown_document_is_404(monkeypatch):
+    monkeypatch.setattr(documents, "pipeline", FakePipeline(error=LookupError("x")))
+    assert client.post(DOC).status_code == 404
+
+
+def test_process_busy_is_429(monkeypatch):
+    monkeypatch.setattr(documents, "pipeline", FakePipeline(result={}))
+    documents._process_slots.acquire()
+    try:
+        assert client.post(DOC).status_code == 429
+    finally:
+        documents._process_slots.release()
+
+
+def test_process_invalid_id_is_422():
+    assert client.post("/documents/not-a-uuid/process").status_code == 422

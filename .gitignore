@@ -4,3 +4,4 @@ __pycache__/
 .env.local
 node_modules/
 .next/
+.fastembed_cache/

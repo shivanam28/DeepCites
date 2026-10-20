@@ -52,7 +52,7 @@ def insert_document(user: AuthUser, row: dict) -> dict:
 
 def list_documents(user: AuthUser) -> list[dict]:
     r = _request("GET", f"{_rest()}/documents", user, params={
-        "select": "id,filename,size_bytes,status,created_at",
+        "select": "id,filename,size_bytes,status,status_detail,chunk_count,truncated,created_at",
         "order": "created_at.desc", "limit": "100"})
     if r.status_code != 200:
         _fail("List documents", r)
@@ -61,7 +61,7 @@ def list_documents(user: AuthUser) -> list[dict]:
 
 def get_document(user: AuthUser, doc_id: str) -> dict | None:
     r = _request("GET", f"{_rest()}/documents", user,
-                 params={"id": f"eq.{doc_id}", "select": "id,storage_path"})
+                 params={"id": f"eq.{doc_id}", "select": "id,storage_path,status"})
     if r.status_code != 200:
         _fail("Get document", r)
     rows = r.json()
@@ -85,3 +85,28 @@ def delete_object(user: AuthUser, path: str) -> None:
     r = _request("DELETE", f"{_objects()}/{path}", user)
     if r.status_code not in (200, 404):
         _fail("Delete object", r)
+
+
+def update_document(user: AuthUser, doc_id: str, fields: dict) -> None:
+    r = _request("PATCH", f"{_rest()}/documents", user, params={"id": f"eq.{doc_id}"}, json=fields)
+    if r.status_code not in (200, 204):
+        _fail("Update document", r)
+
+
+def download_object(user: AuthUser, path: str) -> bytes:
+    r = _request("GET", f"{_objects()}/{path}", user)
+    if r.status_code != 200:
+        _fail("Download object", r)
+    return r.content
+
+
+def delete_chunks(user: AuthUser, doc_id: str) -> None:
+    r = _request("DELETE", f"{_rest()}/document_chunks", user, params={"document_id": f"eq.{doc_id}"})
+    if r.status_code not in (200, 204):
+        _fail("Delete chunks", r)
+
+
+def insert_chunks(user: AuthUser, rows: list[dict]) -> None:
+    r = _request("POST", f"{_rest()}/document_chunks", user, json=rows)
+    if r.status_code != 201:
+        _fail("Insert chunks", r)
