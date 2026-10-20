@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 from fastapi import Depends, HTTPException
@@ -16,6 +16,7 @@ UNAUTHORIZED = {"WWW-Authenticate": "Bearer"}
 class AuthUser:
     id: str
     email: str | None
+    token: str = field(default="", repr=False)  # repr=False keeps it out of logs
 
 
 def verify_token(token: str) -> AuthUser:
@@ -41,7 +42,7 @@ def verify_token(token: str) -> AuthUser:
         user_id = data["id"]
     except (ValueError, KeyError, TypeError):
         raise HTTPException(status_code=401, detail="Invalid or expired token", headers=UNAUTHORIZED)
-    return AuthUser(id=str(user_id), email=data.get("email"))
+    return AuthUser(id=str(user_id), email=data.get("email"), token=token)
 
 
 def get_current_user(
